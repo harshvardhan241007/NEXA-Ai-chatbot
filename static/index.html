@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>NEXA AI Chatbot</title>
+<style>
+  :root {
+    --bg: #808288;
+    --panel: #171a2b;
+    --bubble-user: #4f7cff;
+    --bubble-bot: #232744;
+    --text: #eef0fb;
+    --muted: #8b8fb0;
+    --accent: #4f7cff;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: linear-gradient(160deg, #0f1220, #171a2b);
+    color: var(--text);
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .app {
+    width: 100%;
+    max-width: 560px;
+    height: 90vh;
+    background: var(--panel);
+    border-radius: 18px;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+    overflow: hidden;
+  }
+  header {
+    padding: 18px 20px;
+    background: linear-gradient(120deg, #4f7cff, #7c5cff);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  header .dot { width: 10px; height: 10px; border-radius: 50%; background: #35f28a; }
+  header h1 { font-size: 16px; margin: 0; font-weight: 600; }
+  header p { margin: 0; font-size: 12px; opacity: 0.85; }
+  #messages {
+    flex: 1;
+    padding: 18px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .msg { max-width: 78%; padding: 10px 14px; border-radius: 14px; line-height: 1.4; font-size: 14px; white-space: pre-wrap; }
+  .msg.user { align-self: flex-end; background: var(--bubble-user); border-bottom-right-radius: 4px; }
+  .msg.bot { align-self: flex-start; background: var(--bubble-bot); border-bottom-left-radius: 4px; }
+  .msg.system { align-self: center; color: var(--muted); font-size: 12px; }
+  footer {
+    padding: 14px;
+    border-top: 1px solid rgba(255,255,255,0.08);
+    display: flex;
+    gap: 8px;
+  }
+  #uploadBtn, #sendBtn {
+    background: var(--accent);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    padding: 0 16px;
+    cursor: pointer;
+    font-size: 13px;
+  }
+  #uploadBtn { background: #2b2f4c; }
+  #input {
+    flex: 1;
+    background: #0f1220;
+    border: 1px solid rgba(255,255,255,0.08);
+    color: var(--text);
+    padding: 10px 14px;
+    border-radius: 10px;
+    font-size: 14px;
+    outline: none;
+  }
+  #fileInput { display: none; }
+</style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <div class="dot"></div>
+      <div>
+        <h1>NEXA AI Chatbot</h1>
+        <p>Ask anything, do quick maths, or upload a document</p>
+      </div>
+    </header>
+    <div id="messages"></div>
+    <footer>
+      <input type="file" id="fileInput" accept=".txt,.pdf" />
+      <button id="uploadBtn" title="Upload a document">📎</button>
+      <input id="input" type="text" placeholder="Type a message..." />
+      <button id="sendBtn">Send</button>
+    </footer>
+  </div>
+
+<script>
+const messagesEl = document.getElementById('messages');
+const inputEl = document.getElementById('input');
+const sendBtn = document.getElementById('sendBtn');
+const uploadBtn = document.getElementById('uploadBtn');
+const fileInput = document.getElementById('fileInput');
+
+let sessionId = localStorage.getItem('nexa_session_id') || null;
+const userName = localStorage.getItem('nexa_user_name') || (() => {
+  const n = prompt('What is your name?', 'Friend') || 'Friend';
+  localStorage.setItem('nexa_user_name', n);
+  return n;
+})();
+
+function addMessage(text, cls) {
+  const div = document.createElement('div');
+  div.className = 'msg ' + cls;
+  div.textContent = text;
+  messagesEl.appendChild(div);
+  messagesEl.scrollTop = messagesEl.scrollHeight;
+}
+
+addMessage(`Welcome, ${userName}! Ask me anything.`, 'system');
+
+async function sendMessage() {
+  const text = inputEl.value.trim();
+  if (!text) return;
+  addMessage(text, 'user');
+  inputEl.value = '';
+
+  try {
+    const res = await fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: text, user_name: userName, session_id: sessionId })
+    });
+    if (!res.ok) throw new Error('Server error: ' + res.status);
+    const data = await res.json();
+    sessionId = data.session_id;
+    localStorage.setItem('nexa_session_id', sessionId);
+    addMessage(data.reply, 'bot');
+  } catch (err) {
+    addMessage('⚠️ ' + err.message, 'system');
+  }
+}
+
+sendBtn.addEventListener('click', sendMessage);
+inputEl.addEventListener('keydown', (e) => { if (e.key === 'Enter') sendMessage(); });
+
+uploadBtn.addEventListener('click', () => fileInput.click());
+fileInput.addEventListener('change', async () => {
+  const file = fileInput.files[0];
+  if (!file) return;
+  if (!sessionId) {
+    // ensure a session exists before uploading
+    await sendMessage.__proto__; // no-op, session created on first chat
+  }
+  const fd = new FormData();
+  fd.append('file', file);
+  const sid = sessionId || crypto.randomUUID();
+  sessionId = sid;
+  localStorage.setItem('nexa_session_id', sid);
+
+  addMessage(`Uploading ${file.name}...`, 'system');
+  try {
+    const res = await fetch(`/api/upload?session_id=${encodeURIComponent(sid)}`, {
+      method: 'POST',
+      body: fd
+    });
+    if (!res.ok) throw new Error('Upload failed: ' + res.status);
+    const data = await res.json();
+    addMessage(`Document indexed (${data.chunks_indexed} chunks). Ask me about it!`, 'system');
+  } catch (err) {
+    addMessage('⚠️ ' + err.message, 'system');
+  }
+});
+</script>
+</body>
+</html>
