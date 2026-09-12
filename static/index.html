@@ -3,137 +3,893 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>NEXA AI Chatbot</title>
+<title>NEXA</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='11' fill='%23e8a33d'/%3E%3Ctext x='20' y='27' font-family='sans-serif' font-weight='700' font-size='19' fill='%23171223' text-anchor='middle'%3EN%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg: #808288;
-    --panel: #171a2b;
-    --bubble-user: #4f7cff;
-    --bubble-bot: #232744;
-    --text: #eef0fb;
-    --muted: #8b8fb0;
-    --accent: #4f7cff;
+    --bg-0: #0b0d1c;
+    --bg-1: #0f1226;
+    --panel: #171b36;
+    --panel-raised: #1d2242;
+    --bubble-bot: #232a52;
+    --bubble-user: #23413d;
+    --stroke: rgba(232, 236, 255, 0.08);
+    --text: #ecedfa;
+    --muted: #8489ad;
+    --amber: #e8a33d;
+    --amber-ink: #171223;
+    --teal: #4fd6c0;
+    --danger: #e2645a;
+    --radius: 16px;
+    --font-display: "Space Grotesk", "Inter", sans-serif;
+    --font-body: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
   }
+
+  html[data-theme="light"] {
+    --bg-0: #eef0fa;
+    --bg-1: #e4e7f6;
+    --panel: #ffffff;
+    --panel-raised: #eef0fa;
+    --bubble-bot: #f0f1fa;
+    --bubble-user: #e2f6f1;
+    --stroke: rgba(23, 27, 54, 0.09);
+    --text: #171b36;
+    --muted: #6a6f94;
+    --amber: #c97a1e;
+    --amber-ink: #ffffff;
+    --teal: #1f9c86;
+    --danger: #c23b31;
+  }
+
   * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+
   body {
-    margin: 0;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    background: linear-gradient(160deg, #0f1220, #171a2b);
+    font-family: var(--font-body);
     color: var(--text);
-    height: 100vh;
+    background: var(--bg-0);
+    min-height: 100vh;
     display: flex;
     align-items: center;
     justify-content: center;
+    padding: 24px;
+    position: relative;
+    overflow: hidden;
+    transition: background 0.2s ease, color 0.2s ease;
   }
+
+  /* Ambient background scene ------------------------------------- */
+  .bg-scene {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    overflow: hidden;
+    pointer-events: none;
+  }
+
+  .bg-blob {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(90px);
+    opacity: 0.55;
+    will-change: transform;
+  }
+  .bg-blob.b1 {
+    width: 620px; height: 620px;
+    top: -220px; left: -160px;
+    background: color-mix(in srgb, var(--amber) 32%, transparent);
+    animation: drift1 26s ease-in-out infinite;
+  }
+  .bg-blob.b2 {
+    width: 560px; height: 560px;
+    bottom: -240px; right: -160px;
+    background: color-mix(in srgb, var(--teal) 28%, transparent);
+    animation: drift2 32s ease-in-out infinite;
+  }
+  .bg-blob.b3 {
+    width: 420px; height: 420px;
+    top: 40%; left: 60%;
+    background: color-mix(in srgb, #6f7bff 22%, transparent);
+    animation: drift3 22s ease-in-out infinite;
+  }
+
+  @keyframes drift1 {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    50% { transform: translate(60px, 40px) scale(1.08); }
+  }
+  @keyframes drift2 {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    50% { transform: translate(-50px, -30px) scale(1.06); }
+  }
+  @keyframes drift3 {
+    0%, 100% { transform: translate(-50%, -50%) scale(1); }
+    50% { transform: translate(-50%, -50%) translate(-40px, 30px) scale(0.94); }
+  }
+
+  .bg-nodes { position: absolute; inset: 0; opacity: 0.5; }
+  .bg-nodes svg { width: 100%; height: 100%; }
+  .bg-nodes circle { animation: node-pulse 5s ease-in-out infinite; }
+  .bg-nodes line { stroke: color-mix(in srgb, var(--muted) 55%, transparent); }
+  @keyframes node-pulse {
+    0%, 100% { opacity: 0.35; }
+    50% { opacity: 0.9; }
+  }
+
+  .bg-grain {
+    position: absolute;
+    inset: 0;
+    opacity: 0.05;
+    mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  html[data-theme="light"] .bg-blob { opacity: 0.35; }
+  html[data-theme="light"] .bg-nodes { opacity: 0.3; }
+  html[data-theme="light"] .bg-grain { opacity: 0.03; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .bg-blob { animation: none !important; }
+    .bg-nodes circle { animation: none !important; opacity: 0.6; }
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--amber);
+    outline-offset: 2px;
+  }
+
   .app {
     width: 100%;
-    max-width: 560px;
-    height: 90vh;
-    background: var(--panel);
-    border-radius: 18px;
+    max-width: 600px;
+    height: min(88vh, 780px);
+    background: color-mix(in srgb, var(--panel) 92%, transparent);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    border: 1px solid var(--stroke);
+    border-radius: 22px;
     display: flex;
     flex-direction: column;
-    box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+    box-shadow: 0 30px 80px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.03);
     overflow: hidden;
+    position: relative;
+    z-index: 1;
+    transition: background 0.2s ease, border-color 0.2s ease;
   }
+
+  /* Header --------------------------------------------------- */
   header {
     padding: 18px 20px;
-    background: linear-gradient(120deg, #4f7cff, #7c5cff);
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 12px;
+    border-bottom: 1px solid var(--stroke);
+    background: linear-gradient(180deg, color-mix(in srgb, var(--amber) 5%, transparent), transparent);
+    flex-shrink: 0;
   }
-  header .dot { width: 10px; height: 10px; border-radius: 50%; background: #35f28a; }
-  header h1 { font-size: 16px; margin: 0; font-weight: 600; }
-  header p { margin: 0; font-size: 12px; opacity: 0.85; }
+
+  .mark {
+    width: 38px;
+    height: 38px;
+    border-radius: 11px;
+    background: linear-gradient(135deg, var(--amber), #c97a1e);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 15px;
+    color: var(--amber-ink);
+    flex-shrink: 0;
+  }
+
+  .head-text { min-width: 0; flex: 1; }
+
+  .head-text h1 {
+    font-family: var(--font-display);
+    font-size: 17px;
+    font-weight: 600;
+    margin: 0;
+    letter-spacing: 0.01em;
+  }
+
+  .status-line {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 2px;
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  .status-line .pip {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--muted);
+    flex-shrink: 0;
+    transition: background 0.3s ease;
+  }
+
+  .status-line .pip.online { background: var(--teal); box-shadow: 0 0 0 3px color-mix(in srgb, var(--teal) 20%, transparent); }
+  .status-line .pip.offline { background: var(--danger); box-shadow: 0 0 0 3px color-mix(in srgb, var(--danger) 20%, transparent); }
+  .status-line .pip.pending { background: var(--amber); animation: pulse-pip 1.4s ease-in-out infinite; }
+
+  @keyframes pulse-pip {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.35; }
+  }
+
+  .header-actions { display: flex; gap: 6px; flex-shrink: 0; }
+
+  .icon-btn-ghost {
+    background: transparent;
+    border: 1px solid var(--stroke);
+    color: var(--muted);
+    border-radius: 9px;
+    width: 34px;
+    height: 34px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: border-color 0.15s ease, color 0.15s ease;
+  }
+  .icon-btn-ghost:hover { border-color: var(--amber); color: var(--amber); }
+  .icon-btn-ghost svg { width: 16px; height: 16px; }
+  #themeBtn .sun { display: none; }
+  html[data-theme="light"] #themeBtn .moon { display: none; }
+  html[data-theme="light"] #themeBtn .sun { display: block; }
+
+  /* Messages --------------------------------------------------- */
   #messages {
     flex: 1;
-    padding: 18px;
+    padding: 20px;
     overflow-y: auto;
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 2px;
+    position: relative;
+    scroll-behavior: smooth;
   }
-  .msg { max-width: 78%; padding: 10px 14px; border-radius: 14px; line-height: 1.4; font-size: 14px; white-space: pre-wrap; }
-  .msg.user { align-self: flex-end; background: var(--bubble-user); border-bottom-right-radius: 4px; }
-  .msg.bot { align-self: flex-start; background: var(--bubble-bot); border-bottom-left-radius: 4px; }
-  .msg.system { align-self: center; color: var(--muted); font-size: 12px; }
-  footer {
-    padding: 14px;
-    border-top: 1px solid rgba(255,255,255,0.08);
-    display: flex;
-    gap: 8px;
+
+  #messages::-webkit-scrollbar { width: 8px; }
+  #messages::-webkit-scrollbar-thumb { background: var(--panel-raised); border-radius: 8px; }
+
+  .empty-state {
+    margin: auto;
+    text-align: center;
+    color: var(--muted);
+    max-width: 360px;
   }
-  #uploadBtn, #sendBtn {
-    background: var(--accent);
-    color: white;
-    border: none;
-    border-radius: 10px;
-    padding: 0 16px;
+
+  .empty-state .node-grid { width: 120px; height: 72px; margin: 0 auto 18px; }
+  .empty-state .node-grid svg { width: 100%; height: 100%; }
+
+  .empty-state h2 {
+    font-family: var(--font-display);
+    font-size: 16px;
+    color: var(--text);
+    margin: 0 0 6px;
+    font-weight: 600;
+  }
+  .empty-state p { font-size: 13px; line-height: 1.5; margin: 0 0 16px; }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+  .chip {
+    background: var(--panel-raised);
+    border: 1px solid var(--stroke);
+    color: var(--text);
+    font-size: 12.5px;
+    padding: 8px 13px;
+    border-radius: 20px;
     cursor: pointer;
-    font-size: 13px;
+    transition: border-color 0.15s ease, transform 0.1s ease;
+    font-family: var(--font-body);
   }
-  #uploadBtn { background: #2b2f4c; }
+  .chip:hover { border-color: var(--amber); }
+  .chip:active { transform: scale(0.96); }
+
+  .group { display: flex; gap: 8px; margin: 10px 0 2px; max-width: 100%; }
+  .group.user { flex-direction: row-reverse; }
+  .group.system { justify-content: center; }
+
+  .avatar {
+    width: 26px;
+    height: 26px;
+    border-radius: 8px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-display);
+    font-size: 11px;
+    font-weight: 700;
+    margin-top: 2px;
+  }
+  .avatar.bot { background: linear-gradient(135deg, var(--amber), #c97a1e); color: var(--amber-ink); }
+  .avatar.user { background: var(--panel-raised); color: var(--teal); border: 1px solid var(--stroke); }
+  .avatar.spacer { visibility: hidden; }
+
+  .bubble-col { display: flex; flex-direction: column; max-width: calc(100% - 34px); }
+  .group.user .bubble-col { align-items: flex-end; }
+  .group.bot .bubble-col { align-items: flex-start; }
+
+  .msg-wrap { display: flex; align-items: flex-end; gap: 6px; }
+  .group.user .msg-wrap { flex-direction: row-reverse; }
+
+  .msg {
+    max-width: 100%;
+    padding: 11px 15px;
+    border-radius: var(--radius);
+    line-height: 1.5;
+    font-size: 14.5px;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+  }
+
+  .group.user .msg {
+    background: var(--bubble-user);
+    border: 1px solid color-mix(in srgb, var(--teal) 18%, transparent);
+    border-bottom-right-radius: 5px;
+  }
+
+  .group.bot .msg {
+    background: var(--bubble-bot);
+    border: 1px solid var(--stroke);
+    border-bottom-left-radius: 5px;
+  }
+
+  .group.system .msg {
+    background: transparent;
+    color: var(--muted);
+    font-size: 12.5px;
+    padding: 4px 10px;
+    max-width: 90%;
+    text-align: center;
+  }
+  .group.system.error .msg { color: var(--danger); }
+  .group.system .retry-btn {
+    background: none;
+    border: 1px solid var(--stroke);
+    color: var(--danger);
+    font-size: 11.5px;
+    padding: 3px 10px;
+    border-radius: 12px;
+    cursor: pointer;
+    margin-top: 4px;
+    font-family: var(--font-body);
+  }
+  .group.system .retry-btn:hover { border-color: var(--danger); }
+
+  .msg code {
+    background: rgba(120,120,160,0.18);
+    padding: 1px 6px;
+    border-radius: 5px;
+    font-size: 0.9em;
+    font-family: "SFMono-Regular", Consolas, monospace;
+  }
+
+  .copy-btn {
+    background: transparent;
+    border: none;
+    color: var(--muted);
+    cursor: pointer;
+    width: 24px;
+    height: 24px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.15s ease, color 0.15s ease, background 0.15s ease;
+    flex-shrink: 0;
+  }
+  .copy-btn svg { width: 13px; height: 13px; }
+  .group:hover .copy-btn, .copy-btn.shown { opacity: 1; }
+  .copy-btn:hover { color: var(--text); background: var(--panel-raised); }
+
+  .timestamp {
+    font-size: 10.5px;
+    color: var(--muted);
+    margin: 3px 4px 0;
+    opacity: 0;
+    transition: opacity 0.15s ease;
+  }
+  .group:hover .timestamp { opacity: 0.8; }
+
+  .typing {
+    display: flex;
+    gap: 4px;
+    padding: 13px 16px;
+    background: var(--bubble-bot);
+    border-radius: var(--radius);
+    border-bottom-left-radius: 5px;
+    width: fit-content;
+    border: 1px solid var(--stroke);
+  }
+  .typing span {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--muted);
+    animation: bounce 1.2s infinite ease-in-out;
+  }
+  .typing span:nth-child(2) { animation-delay: 0.15s; }
+  .typing span:nth-child(3) { animation-delay: 0.3s; }
+  @keyframes bounce {
+    0%, 60%, 100% { transform: translateY(0); opacity: 0.5; }
+    30% { transform: translateY(-4px); opacity: 1; }
+  }
+
+  .scroll-jump {
+    position: absolute;
+    bottom: 14px;
+    left: 50%;
+    transform: translateX(-50%) translateY(8px);
+    background: var(--panel-raised);
+    border: 1px solid var(--stroke);
+    color: var(--text);
+    border-radius: 20px;
+    padding: 7px 14px;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.15s ease, transform 0.15s ease;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.25);
+  }
+  .scroll-jump.visible { opacity: 1; pointer-events: auto; transform: translateX(-50%) translateY(0); }
+  .scroll-jump svg { width: 13px; height: 13px; }
+
+  /* Footer --------------------------------------------------- */
+  footer {
+    padding: 12px 16px 14px;
+    border-top: 1px solid var(--stroke);
+    flex-shrink: 0;
+    background: var(--bg-1);
+  }
+
+  .upload-progress {
+    display: none;
+    align-items: center;
+    gap: 8px;
+    font-size: 11.5px;
+    color: var(--muted);
+    margin-bottom: 8px;
+    padding: 0 2px;
+  }
+  .upload-progress.active { display: flex; }
+  .upload-progress .bar-track {
+    flex: 1;
+    height: 5px;
+    background: var(--panel-raised);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .upload-progress .bar-fill {
+    height: 100%;
+    width: 0%;
+    background: var(--amber);
+    border-radius: 4px;
+    transition: width 0.15s ease;
+  }
+
+  .composer {
+    display: flex;
+    align-items: flex-end;
+    gap: 8px;
+    background: var(--bg-0);
+    border: 1px solid var(--stroke);
+    border-radius: 14px;
+    padding: 6px 6px 6px 14px;
+    transition: border-color 0.15s ease;
+  }
+  .composer:focus-within { border-color: var(--amber); }
+
   #input {
     flex: 1;
-    background: #0f1220;
-    border: 1px solid rgba(255,255,255,0.08);
+    background: transparent;
+    border: none;
     color: var(--text);
-    padding: 10px 14px;
-    border-radius: 10px;
-    font-size: 14px;
+    font-family: var(--font-body);
+    font-size: 14.5px;
     outline: none;
+    resize: none;
+    max-height: 120px;
+    line-height: 1.5;
+    padding: 8px 0;
   }
+  #input::placeholder { color: var(--muted); }
+
+  .icon-btn {
+    background: var(--panel-raised);
+    color: var(--muted);
+    border: none;
+    border-radius: 10px;
+    width: 36px;
+    height: 36px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: color 0.15s ease, background 0.15s ease, transform 0.1s ease;
+  }
+  .icon-btn svg { width: 17px; height: 17px; }
+  .icon-btn:hover { color: var(--text); }
+  .icon-btn:active { transform: scale(0.94); }
+
+  #sendBtn { background: var(--amber); color: var(--amber-ink); }
+  #sendBtn:hover { background: color-mix(in srgb, var(--amber) 85%, white); }
+  #sendBtn:disabled { background: var(--panel-raised); color: var(--muted); cursor: not-allowed; }
+
+  .hint {
+    font-size: 11px;
+    color: var(--muted);
+    margin: 8px 4px 0;
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  .hint .kbd-hint { white-space: nowrap; }
+
   #fileInput { display: none; }
+
+  .dropzone-overlay {
+    position: absolute;
+    inset: 0;
+    background: color-mix(in srgb, var(--bg-0) 90%, transparent);
+    border: 2px dashed var(--amber);
+    border-radius: 22px;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 8px;
+    z-index: 10;
+    pointer-events: none;
+    font-family: var(--font-display);
+  }
+  .dropzone-overlay.active { display: flex; }
+  .dropzone-overlay svg { width: 30px; height: 30px; color: var(--amber); }
+  .dropzone-overlay span { color: var(--text); font-size: 14px; }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
+  }
+
+  @media (max-width: 480px) {
+    body { padding: 0; }
+    .app { height: 100vh; max-width: 100%; border-radius: 0; border: none; }
+  }
 </style>
 </head>
 <body>
-  <div class="app">
+  <div class="bg-scene" aria-hidden="true">
+    <div class="bg-blob b1"></div>
+    <div class="bg-blob b2"></div>
+    <div class="bg-blob b3"></div>
+    <div class="bg-nodes">
+      <svg viewBox="0 0 100 100" preserveAspectRatio="none">
+        <line x1="8" y1="14" x2="34" y2="30"/>
+        <line x1="34" y1="30" x2="20" y2="55"/>
+        <line x1="34" y1="30" x2="62" y2="20"/>
+        <line x1="62" y1="20" x2="88" y2="38"/>
+        <line x1="20" y1="55" x2="46" y2="72"/>
+        <line x1="46" y1="72" x2="78" y2="66"/>
+        <line x1="78" y1="66" x2="88" y2="38"/>
+        <line x1="46" y1="72" x2="30" y2="92"/>
+        <line x1="62" y1="20" x2="52" y2="4"/>
+        <circle cx="8" cy="14" r="0.8" fill="#e8a33d" style="animation-delay:0s"/>
+        <circle cx="34" cy="30" r="0.8" fill="#4fd6c0" style="animation-delay:0.6s"/>
+        <circle cx="20" cy="55" r="0.8" fill="#e8a33d" style="animation-delay:1.2s"/>
+        <circle cx="62" cy="20" r="0.8" fill="#4fd6c0" style="animation-delay:1.8s"/>
+        <circle cx="88" cy="38" r="0.8" fill="#e8a33d" style="animation-delay:2.4s"/>
+        <circle cx="46" cy="72" r="0.8" fill="#4fd6c0" style="animation-delay:3s"/>
+        <circle cx="78" cy="66" r="0.8" fill="#e8a33d" style="animation-delay:3.6s"/>
+        <circle cx="30" cy="92" r="0.8" fill="#4fd6c0" style="animation-delay:4.2s"/>
+        <circle cx="52" cy="4" r="0.8" fill="#e8a33d" style="animation-delay:4.8s"/>
+      </svg>
+    </div>
+    <div class="bg-grain"></div>
+  </div>
+
+  <div class="app" id="app">
     <header>
-      <div class="dot"></div>
-      <div>
-        <h1>NEXA AI Chatbot</h1>
-        <p>Ask anything, do quick maths, or upload a document</p>
+      <div class="mark">N</div>
+      <div class="head-text">
+        <h1>NEXA</h1>
+        <div class="status-line">
+          <span class="pip pending" id="statusPip"></span>
+          <span id="statusText">Connecting…</span>
+        </div>
+      </div>
+      <div class="header-actions">
+        <button class="icon-btn-ghost" id="themeBtn" title="Toggle theme" aria-label="Toggle light and dark theme">
+          <svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+          <svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+        </button>
+        <button class="icon-btn-ghost" id="resetBtn" title="Start a new session" aria-label="Start a new session">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg>
+        </button>
       </div>
     </header>
-    <div id="messages"></div>
+
+    <div id="messages" aria-live="polite">
+      <div class="empty-state" id="emptyState">
+        <div class="node-grid">
+          <svg viewBox="0 0 120 72" fill="none">
+            <line x1="18" y1="18" x2="60" y2="10" stroke="#8b90b8" stroke-opacity="0.35" stroke-width="1.5"/>
+            <line x1="18" y1="18" x2="30" y2="55" stroke="#8b90b8" stroke-opacity="0.35" stroke-width="1.5"/>
+            <line x1="60" y1="10" x2="100" y2="24" stroke="#8b90b8" stroke-opacity="0.35" stroke-width="1.5"/>
+            <line x1="60" y1="10" x2="30" y2="55" stroke="#8b90b8" stroke-opacity="0.35" stroke-width="1.5"/>
+            <line x1="30" y1="55" x2="88" y2="58" stroke="#8b90b8" stroke-opacity="0.35" stroke-width="1.5"/>
+            <line x1="100" y1="24" x2="88" y2="58" stroke="#8b90b8" stroke-opacity="0.35" stroke-width="1.5"/>
+            <circle cx="18" cy="18" r="4" fill="#4fd6c0"/>
+            <circle cx="60" cy="10" r="4" fill="#e8a33d"/>
+            <circle cx="100" cy="24" r="4" fill="#4fd6c0"/>
+            <circle cx="30" cy="55" r="4" fill="#e8a33d"/>
+            <circle cx="88" cy="58" r="4" fill="#4fd6c0"/>
+          </svg>
+        </div>
+        <h2>Ask NEXA anything</h2>
+        <p>Chat, run quick maths, check the date, or drop in a document to ask questions about it.</p>
+        <div class="chips">
+          <button class="chip" data-fill="What's 128 * 47?">🧮 128 × 47</button>
+          <button class="chip" data-fill="What's today's date?">📅 Today's date</button>
+          <button class="chip" id="chipUpload">📎 Upload a document</button>
+        </div>
+      </div>
+    </div>
+
     <footer>
-      <input type="file" id="fileInput" accept=".txt,.pdf" />
-      <button id="uploadBtn" title="Upload a document">📎</button>
-      <input id="input" type="text" placeholder="Type a message..." />
-      <button id="sendBtn">Send</button>
+      <div class="upload-progress" id="uploadProgress">
+        <span id="uploadLabel">Uploading…</span>
+        <div class="bar-track"><div class="bar-fill" id="uploadBar"></div></div>
+      </div>
+      <div class="composer">
+        <button class="icon-btn" id="uploadBtn" title="Attach a document (.txt, .pdf)" aria-label="Attach a document">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+        </button>
+        <textarea id="input" placeholder="Message NEXA…" rows="1" aria-label="Message NEXA"></textarea>
+        <button class="icon-btn" id="sendBtn" title="Send" aria-label="Send message">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4 20-7Z"/></svg>
+        </button>
+      </div>
+      <div class="hint">
+        <span id="nameHint"></span>
+        <span class="kbd-hint">Enter to send · Shift+Enter for a new line</span>
+      </div>
     </footer>
+
+    <input type="file" id="fileInput" accept=".txt,.pdf" />
+    <div class="dropzone-overlay" id="dropzone">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>
+      <span>Drop a .txt or .pdf to index it</span>
+    </div>
   </div>
 
 <script>
 const messagesEl = document.getElementById('messages');
+const emptyState = document.getElementById('emptyState');
 const inputEl = document.getElementById('input');
 const sendBtn = document.getElementById('sendBtn');
 const uploadBtn = document.getElementById('uploadBtn');
 const fileInput = document.getElementById('fileInput');
+const resetBtn = document.getElementById('resetBtn');
+const themeBtn = document.getElementById('themeBtn');
+const statusPip = document.getElementById('statusPip');
+const statusText = document.getElementById('statusText');
+const dropzone = document.getElementById('dropzone');
+const appEl = document.getElementById('app');
+const nameHint = document.getElementById('nameHint');
+const uploadProgress = document.getElementById('uploadProgress');
+const uploadLabel = document.getElementById('uploadLabel');
+const uploadBar = document.getElementById('uploadBar');
+const chipUpload = document.getElementById('chipUpload');
 
 let sessionId = localStorage.getItem('nexa_session_id') || null;
-const userName = localStorage.getItem('nexa_user_name') || (() => {
-  const n = prompt('What is your name?', 'Friend') || 'Friend';
-  localStorage.setItem('nexa_user_name', n);
-  return n;
-})();
+let userName = localStorage.getItem('nexa_user_name');
+if (!userName) {
+  userName = (prompt('What should NEXA call you?', 'Friend') || 'Friend').trim() || 'Friend';
+  localStorage.setItem('nexa_user_name', userName);
+}
+nameHint.textContent = `Signed in as ${userName}`;
 
-function addMessage(text, cls) {
-  const div = document.createElement('div');
-  div.className = 'msg ' + cls;
-  div.textContent = text;
-  messagesEl.appendChild(div);
-  messagesEl.scrollTop = messagesEl.scrollHeight;
+// ---- theme ----------------------------------------------------------
+const savedTheme = localStorage.getItem('nexa_theme')
+  || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+document.documentElement.setAttribute('data-theme', savedTheme);
+themeBtn.addEventListener('click', () => {
+  const next = document.documentElement.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
+  document.documentElement.setAttribute('data-theme', next);
+  localStorage.setItem('nexa_theme', next);
+});
+
+// ---- helpers ----------------------------------------------------------
+function hideEmptyState() {
+  if (emptyState.parentNode) emptyState.remove();
 }
 
-addMessage(`Welcome, ${userName}! Ask me anything.`, 'system');
+function formatTime(date) {
+  return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+}
 
-async function sendMessage() {
-  const text = inputEl.value.trim();
+function formatText(raw) {
+  const escaped = raw.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  return escaped
+    .replace(/`([^`]+)`/g, '<code>$1</code>')
+    .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+}
+
+function isNearBottom() {
+  return messagesEl.scrollHeight - messagesEl.scrollTop - messagesEl.clientHeight < 80;
+}
+
+function scrollToBottom(force) {
+  if (force || isNearBottom()) messagesEl.scrollTop = messagesEl.scrollHeight;
+}
+
+let lastGroup = null; // {role, el}
+
+function addMessage(text, role, { persistTime } = {}) {
+  hideEmptyState();
+  const wasNearBottom = isNearBottom();
+  const sameAsLast = lastGroup && lastGroup.role === role;
+
+  let group, bubbleCol;
+  if (sameAsLast) {
+    group = lastGroup.el;
+    bubbleCol = group.querySelector('.bubble-col');
+  } else {
+    group = document.createElement('div');
+    group.className = 'group ' + role;
+
+    const avatar = document.createElement('div');
+    avatar.className = 'avatar ' + (role === 'bot' ? 'bot' : 'user');
+    avatar.textContent = role === 'bot' ? 'N' : (userName[0] || 'U').toUpperCase();
+    group.appendChild(avatar);
+
+    bubbleCol = document.createElement('div');
+    bubbleCol.className = 'bubble-col';
+    group.appendChild(bubbleCol);
+
+    messagesEl.appendChild(group);
+    lastGroup = { role, el: group };
+  }
+
+  const wrap = document.createElement('div');
+  wrap.className = 'msg-wrap';
+
+  const bubble = document.createElement('div');
+  bubble.className = 'msg';
+  bubble.innerHTML = formatText(text);
+  wrap.appendChild(bubble);
+
+  if (role === 'bot') {
+    const copyBtn = document.createElement('button');
+    copyBtn.className = 'copy-btn';
+    copyBtn.title = 'Copy';
+    copyBtn.setAttribute('aria-label', 'Copy message');
+    copyBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
+    copyBtn.addEventListener('click', () => {
+      navigator.clipboard?.writeText(text).then(() => {
+        copyBtn.classList.add('shown');
+        copyBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
+        setTimeout(() => {
+          copyBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
+          copyBtn.classList.remove('shown');
+        }, 1200);
+      });
+    });
+    wrap.appendChild(copyBtn);
+  }
+
+  bubbleCol.appendChild(wrap);
+
+  const ts = document.createElement('div');
+  ts.className = 'timestamp';
+  ts.textContent = formatTime(persistTime ? new Date(persistTime) : new Date());
+  bubbleCol.appendChild(ts);
+
+  scrollToBottom(wasNearBottom);
+  return group;
+}
+
+function addSystemMessage(text, isError, { retry } = {}) {
+  hideEmptyState();
+  lastGroup = null;
+  const wasNearBottom = isNearBottom();
+  const group = document.createElement('div');
+  group.className = 'group system' + (isError ? ' error' : '');
+  const bubbleCol = document.createElement('div');
+  bubbleCol.className = 'bubble-col';
+  const bubble = document.createElement('div');
+  bubble.className = 'msg';
+  bubble.textContent = text;
+  bubbleCol.appendChild(bubble);
+  if (retry) {
+    const retryBtn = document.createElement('button');
+    retryBtn.className = 'retry-btn';
+    retryBtn.textContent = 'Retry';
+    retryBtn.addEventListener('click', () => { group.remove(); retry(); });
+    bubbleCol.appendChild(retryBtn);
+  }
+  group.appendChild(bubbleCol);
+  messagesEl.appendChild(group);
+  scrollToBottom(wasNearBottom);
+}
+
+let typingGroup = null;
+function showTyping() {
+  hideEmptyState();
+  lastGroup = null;
+  typingGroup = document.createElement('div');
+  typingGroup.className = 'group bot';
+  typingGroup.innerHTML = `
+    <div class="avatar bot">N</div>
+    <div class="bubble-col"><div class="typing"><span></span><span></span><span></span></div></div>`;
+  messagesEl.appendChild(typingGroup);
+  scrollToBottom(true);
+}
+function hideTyping() {
+  if (typingGroup) { typingGroup.remove(); typingGroup = null; }
+}
+
+function setStatus(state) {
+  statusPip.className = 'pip ' + state;
+  statusText.textContent = state === 'online' ? 'Online'
+    : state === 'offline' ? 'Can\u2019t reach the server'
+    : 'Connecting…';
+}
+
+async function checkHealth() {
+  try {
+    const res = await fetch('/api/health');
+    if (!res.ok) throw new Error();
+    setStatus('online');
+  } catch {
+    setStatus('offline');
+  }
+}
+
+async function loadHistory() {
+  if (!sessionId) return;
+  try {
+    const res = await fetch(`/api/history/${encodeURIComponent(sessionId)}`);
+    if (!res.ok) return;
+    const data = await res.json();
+    const history = data.history || [];
+    if (!history.length) return;
+    hideEmptyState();
+    for (const turn of history) {
+      const role = turn.role === 'user' ? 'user' : (turn.role === 'bot' || turn.role === 'assistant') ? 'bot' : null;
+      if (!role) continue;
+      const text = turn.message || turn.content || turn.text;
+      if (text) addMessage(text, role, { persistTime: turn.timestamp || turn.created_at });
+    }
+  } catch {
+    // history is a nice-to-have; silently skip if unavailable
+  }
+}
+
+function autoResize() {
+  inputEl.style.height = 'auto';
+  inputEl.style.height = Math.min(inputEl.scrollHeight, 120) + 'px';
+}
+
+async function sendMessage(overrideText) {
+  const text = (overrideText ?? inputEl.value).trim();
   if (!text) return;
   addMessage(text, 'user');
-  inputEl.value = '';
+  if (overrideText === undefined) { inputEl.value = ''; autoResize(); }
+  sendBtn.disabled = true;
+  showTyping();
 
   try {
     const res = await fetch('/api/chat', {
@@ -141,46 +897,141 @@ async function sendMessage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ message: text, user_name: userName, session_id: sessionId })
     });
-    if (!res.ok) throw new Error('Server error: ' + res.status);
+    if (!res.ok) throw new Error(`Server error (${res.status})`);
     const data = await res.json();
     sessionId = data.session_id;
     localStorage.setItem('nexa_session_id', sessionId);
+    hideTyping();
     addMessage(data.reply, 'bot');
+    setStatus('online');
   } catch (err) {
-    addMessage('⚠️ ' + err.message, 'system');
+    hideTyping();
+    addSystemMessage(err.message || 'Something went wrong sending that.', true, {
+      retry: () => sendMessage(text)
+    });
+    setStatus('offline');
+  } finally {
+    sendBtn.disabled = false;
   }
 }
 
-sendBtn.addEventListener('click', sendMessage);
-inputEl.addEventListener('keydown', (e) => { if (e.key === 'Enter') sendMessage(); });
-
-uploadBtn.addEventListener('click', () => fileInput.click());
-fileInput.addEventListener('change', async () => {
-  const file = fileInput.files[0];
+function uploadFile(file) {
   if (!file) return;
-  if (!sessionId) {
-    // ensure a session exists before uploading
-    await sendMessage.__proto__; // no-op, session created on first chat
+  if (!/\.(txt|pdf)$/i.test(file.name)) {
+    addSystemMessage('NEXA can only read .txt and .pdf files right now.', true);
+    return;
   }
+  if (!sessionId) {
+    sessionId = crypto.randomUUID();
+    localStorage.setItem('nexa_session_id', sessionId);
+  }
+  hideEmptyState();
+
+  const sizeKb = (file.size / 1024).toFixed(0);
+  uploadLabel.textContent = `Uploading ${file.name} (${sizeKb} KB)…`;
+  uploadBar.style.width = '0%';
+  uploadProgress.classList.add('active');
+
   const fd = new FormData();
   fd.append('file', file);
-  const sid = sessionId || crypto.randomUUID();
-  sessionId = sid;
-  localStorage.setItem('nexa_session_id', sid);
 
-  addMessage(`Uploading ${file.name}...`, 'system');
-  try {
-    const res = await fetch(`/api/upload?session_id=${encodeURIComponent(sid)}`, {
-      method: 'POST',
-      body: fd
-    });
-    if (!res.ok) throw new Error('Upload failed: ' + res.status);
-    const data = await res.json();
-    addMessage(`Document indexed (${data.chunks_indexed} chunks). Ask me about it!`, 'system');
-  } catch (err) {
-    addMessage('⚠️ ' + err.message, 'system');
+  const xhr = new XMLHttpRequest();
+  xhr.open('POST', `/api/upload?session_id=${encodeURIComponent(sessionId)}`);
+
+  xhr.upload.addEventListener('progress', (e) => {
+    if (e.lengthComputable) {
+      uploadBar.style.width = Math.round((e.loaded / e.total) * 100) + '%';
+    }
+  });
+
+  xhr.addEventListener('load', () => {
+    uploadProgress.classList.remove('active');
+    let data = null;
+    try { data = JSON.parse(xhr.responseText); } catch {}
+    if (xhr.status >= 200 && xhr.status < 300 && data) {
+      addSystemMessage(`${file.name} is indexed (${data.chunks_indexed} chunks). Ask away.`);
+    } else {
+      addSystemMessage((data && data.detail) || `Upload failed (${xhr.status})`, true, {
+        retry: () => uploadFile(file)
+      });
+    }
+  });
+
+  xhr.addEventListener('error', () => {
+    uploadProgress.classList.remove('active');
+    addSystemMessage('That upload didn\u2019t go through.', true, { retry: () => uploadFile(file) });
+  });
+
+  xhr.send(fd);
+}
+
+// Send interactions
+sendBtn.addEventListener('click', () => sendMessage());
+inputEl.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    sendMessage();
   }
 });
+inputEl.addEventListener('input', autoResize);
+
+// Quick-suggestion chips
+document.querySelectorAll('.chip[data-fill]').forEach((chip) => {
+  chip.addEventListener('click', () => sendMessage(chip.dataset.fill));
+});
+chipUpload.addEventListener('click', () => fileInput.click());
+
+// Upload interactions
+uploadBtn.addEventListener('click', () => fileInput.click());
+fileInput.addEventListener('change', () => {
+  uploadFile(fileInput.files[0]);
+  fileInput.value = '';
+});
+
+// Drag & drop a file anywhere on the app
+let dragDepth = 0;
+appEl.addEventListener('dragenter', (e) => {
+  e.preventDefault();
+  dragDepth++;
+  dropzone.classList.add('active');
+});
+appEl.addEventListener('dragover', (e) => e.preventDefault());
+appEl.addEventListener('dragleave', () => {
+  dragDepth = Math.max(0, dragDepth - 1);
+  if (dragDepth === 0) dropzone.classList.remove('active');
+});
+appEl.addEventListener('drop', (e) => {
+  e.preventDefault();
+  dragDepth = 0;
+  dropzone.classList.remove('active');
+  const file = e.dataTransfer.files?.[0];
+  if (file) uploadFile(file);
+});
+
+// Scroll-to-bottom floating button
+const scrollJump = document.createElement('button');
+scrollJump.className = 'scroll-jump';
+scrollJump.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="m19 12-7 7-7-7"/></svg> New messages';
+scrollJump.addEventListener('click', () => scrollToBottom(true));
+appEl.appendChild(scrollJump);
+messagesEl.addEventListener('scroll', () => {
+  scrollJump.classList.toggle('visible', !isNearBottom() && messagesEl.scrollHeight > messagesEl.clientHeight + 40);
+});
+
+// Reset session
+resetBtn.addEventListener('click', () => {
+  if (!confirm('Start a fresh conversation? Your current session id will be cleared.')) return;
+  localStorage.removeItem('nexa_session_id');
+  sessionId = null;
+  lastGroup = null;
+  messagesEl.innerHTML = '';
+  messagesEl.appendChild(emptyState);
+  addSystemMessage(`New session started for ${userName}.`);
+});
+
+checkHealth();
+loadHistory();
+inputEl.focus();
 </script>
 </body>
 </html>
