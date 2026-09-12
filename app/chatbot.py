@@ -24,8 +24,13 @@ class NexaChatbot:
 
     # ---- session helpers --------------------------------------------------
 
-    def start_session(self, user_name: str, session_id: Optional[str] = None) -> str:
-        return self.memory.create_session(user_name, session_id=session_id)
+    def start_session(
+        self,
+        user_name: str,
+        session_id: Optional[str] = None,
+        user_id: Optional[int] = None,
+    ) -> str:
+        return self.memory.create_session(user_name, session_id=session_id, user_id=user_id)
 
     def greeting(self, user_name: str) -> str:
         return f"{time_based_greeting(user_name)}!\nWelcome to NEXA AI Chatbot."

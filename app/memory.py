@@ -18,13 +18,18 @@ class ConversationMemory:
 
     # ---- session management -------------------------------------------------
 
-    def create_session(self, user_name: str, session_id: Optional[str] = None) -> str:
+    def create_session(
+        self,
+        user_name: str,
+        session_id: Optional[str] = None,
+        user_id: Optional[int] = None,
+    ) -> str:
         session_id = session_id or str(uuid.uuid4())
         with get_connection(self.db_path) as conn:
             conn.execute(
-                "INSERT OR IGNORE INTO conversations (session_id, user_name) "
-                "VALUES (?, ?)",
-                (session_id, user_name),
+                "INSERT OR IGNORE INTO conversations (session_id, user_id, user_name) "
+                "VALUES (?, ?, ?)",
+                (session_id, user_id, user_name),
             )
         log.info("Session created/resumed: %s (user=%s)", session_id, user_name)
         return session_id
@@ -34,6 +39,15 @@ class ConversationMemory:
             "SELECT id FROM conversations WHERE session_id = ?", (session_id,)
         ).fetchone()
         return row["id"] if row else None
+
+    def get_session_owner(self, session_id: str) -> Optional[int]:
+        """Return the user_id that owns this session, or None if the
+        session doesn't exist yet or was created before auth existed."""
+        with get_connection(self.db_path) as conn:
+            row = conn.execute(
+                "SELECT user_id FROM conversations WHERE session_id = ?", (session_id,)
+            ).fetchone()
+        return row["user_id"] if row else None
 
     # ---- messages -------------------------------------------------------------
 

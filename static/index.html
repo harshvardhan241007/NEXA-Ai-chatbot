@@ -566,6 +566,122 @@
   @media (max-width: 480px) {
     body { padding: 0; }
     .app { height: 100vh; max-width: 100%; border-radius: 0; border: none; }
+    .auth-card { height: 100vh; max-width: 100%; border-radius: 0; border: none; }
+  }
+
+  /* Auth screen ------------------------------------------------- */
+  .auth-card {
+    width: 100%;
+    max-width: 380px;
+    background: color-mix(in srgb, var(--panel) 92%, transparent);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    border: 1px solid var(--stroke);
+    border-radius: 22px;
+    box-shadow: 0 30px 80px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.03);
+    position: relative;
+    z-index: 1;
+    padding: 32px 28px 28px;
+  }
+  .auth-brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 22px;
+  }
+  .auth-brand .mark {
+    width: 38px; height: 38px; border-radius: 11px;
+    background: linear-gradient(135deg, var(--amber), var(--teal));
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--font-display); font-weight: 700; color: var(--amber-ink);
+    flex-shrink: 0;
+  }
+  .auth-brand h1 { font-family: var(--font-display); font-size: 20px; margin: 0; }
+  .auth-brand p { margin: 2px 0 0; font-size: 13px; color: var(--muted); }
+
+  .auth-tabs {
+    display: flex;
+    background: var(--panel-raised);
+    border: 1px solid var(--stroke);
+    border-radius: 12px;
+    padding: 3px;
+    margin-bottom: 20px;
+  }
+  .auth-tab {
+    flex: 1;
+    border: none;
+    background: transparent;
+    color: var(--muted);
+    font-family: var(--font-body);
+    font-weight: 600;
+    font-size: 13px;
+    padding: 9px 0;
+    border-radius: 9px;
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease;
+  }
+  .auth-tab.active {
+    background: var(--amber);
+    color: var(--amber-ink);
+  }
+
+  .auth-field { margin-bottom: 14px; }
+  .auth-field label {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+  .auth-field input {
+    width: 100%;
+    background: var(--panel-raised);
+    border: 1px solid var(--stroke);
+    border-radius: 11px;
+    padding: 11px 13px;
+    color: var(--text);
+    font-family: var(--font-body);
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.15s ease;
+  }
+  .auth-field input:focus { border-color: var(--amber); }
+
+  .auth-submit {
+    width: 100%;
+    border: none;
+    background: var(--amber);
+    color: var(--amber-ink);
+    font-family: var(--font-body);
+    font-weight: 700;
+    font-size: 14px;
+    padding: 12px 0;
+    border-radius: 11px;
+    cursor: pointer;
+    margin-top: 4px;
+    transition: opacity 0.15s ease, transform 0.1s ease;
+  }
+  .auth-submit:hover { opacity: 0.92; }
+  .auth-submit:active { transform: scale(0.98); }
+  .auth-submit:disabled { opacity: 0.6; cursor: not-allowed; }
+
+  .auth-error {
+    display: none;
+    background: color-mix(in srgb, var(--danger) 14%, transparent);
+    border: 1px solid color-mix(in srgb, var(--danger) 40%, transparent);
+    color: var(--danger);
+    font-size: 13px;
+    padding: 9px 12px;
+    border-radius: 10px;
+    margin-bottom: 14px;
+  }
+  .auth-error.shown { display: block; }
+
+  .auth-hint {
+    text-align: center;
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 16px;
   }
 </style>
 </head>
@@ -599,7 +715,38 @@
     <div class="bg-grain"></div>
   </div>
 
-  <div class="app" id="app">
+  <div class="auth-card" id="authCard" style="display:none;">
+    <div class="auth-brand">
+      <div class="mark">N</div>
+      <div>
+        <h1>NEXA</h1>
+        <p>Sign in to start chatting</p>
+      </div>
+    </div>
+
+    <div class="auth-tabs">
+      <button class="auth-tab active" id="tabLogin" type="button">Log in</button>
+      <button class="auth-tab" id="tabSignup" type="button">Sign up</button>
+    </div>
+
+    <div class="auth-error" id="authError"></div>
+
+    <form id="authForm">
+      <div class="auth-field">
+        <label for="authUsername">Username</label>
+        <input id="authUsername" type="text" autocomplete="username" minlength="3" required />
+      </div>
+      <div class="auth-field">
+        <label for="authPassword">Password</label>
+        <input id="authPassword" type="password" autocomplete="current-password" minlength="6" required />
+      </div>
+      <button class="auth-submit" id="authSubmit" type="submit">Log in</button>
+    </form>
+
+    <p class="auth-hint" id="authHint">New here? Switch to Sign up above to create an account.</p>
+  </div>
+
+  <div class="app" id="app" style="display:none;">
     <header>
       <div class="mark">N</div>
       <div class="head-text">
@@ -616,6 +763,9 @@
         </button>
         <button class="icon-btn-ghost" id="resetBtn" title="Start a new session" aria-label="Start a new session">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg>
+        </button>
+        <button class="icon-btn-ghost" id="logoutBtn" title="Log out" aria-label="Log out">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
         </button>
       </div>
     </header>
@@ -693,13 +843,134 @@ const uploadLabel = document.getElementById('uploadLabel');
 const uploadBar = document.getElementById('uploadBar');
 const chipUpload = document.getElementById('chipUpload');
 
-let sessionId = localStorage.getItem('nexa_session_id') || null;
-let userName = localStorage.getItem('nexa_user_name');
-if (!userName) {
-  userName = (prompt('What should NEXA call you?', 'Friend') || 'Friend').trim() || 'Friend';
-  localStorage.setItem('nexa_user_name', userName);
+let sessionId = sessionStorage.getItem('nexa_session_id') || null;
+let authToken = localStorage.getItem('nexa_auth_token') || null;
+let userName = localStorage.getItem('nexa_user_name') || 'Friend';
+
+// ---- auth screen ------------------------------------------------------
+const authCard = document.getElementById('authCard');
+const authForm = document.getElementById('authForm');
+const authUsername = document.getElementById('authUsername');
+const authPassword = document.getElementById('authPassword');
+const authSubmit = document.getElementById('authSubmit');
+const authError = document.getElementById('authError');
+const authHint = document.getElementById('authHint');
+const tabLogin = document.getElementById('tabLogin');
+const tabSignup = document.getElementById('tabSignup');
+const logoutBtn = document.getElementById('logoutBtn');
+
+let authMode = 'login'; // 'login' | 'signup'
+
+function setAuthMode(mode) {
+  authMode = mode;
+  tabLogin.classList.toggle('active', mode === 'login');
+  tabSignup.classList.toggle('active', mode === 'signup');
+  authSubmit.textContent = mode === 'login' ? 'Log in' : 'Create account';
+  authPassword.autocomplete = mode === 'login' ? 'current-password' : 'new-password';
+  authHint.textContent = mode === 'login'
+    ? 'New here? Switch to Sign up above to create an account.'
+    : 'Already have an account? Switch to Log in above.';
+  authError.classList.remove('shown');
 }
-nameHint.textContent = `Signed in as ${userName}`;
+
+tabLogin.addEventListener('click', () => setAuthMode('login'));
+tabSignup.addEventListener('click', () => setAuthMode('signup'));
+
+function showAuthScreen() {
+  appEl.style.display = 'none';
+  authCard.style.display = 'block';
+  authUsername.focus();
+}
+
+function showApp() {
+  authCard.style.display = 'none';
+  appEl.style.display = 'flex';
+  nameHint.textContent = `Signed in as ${userName}`;
+}
+
+function setSignedIn(token, username) {
+  authToken = token;
+  userName = username;
+  localStorage.setItem('nexa_auth_token', token);
+  localStorage.setItem('nexa_user_name', username);
+  showApp();
+  checkHealth();
+  loadHistory();
+}
+
+authForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const username = authUsername.value.trim();
+  const password = authPassword.value;
+  authError.classList.remove('shown');
+  authSubmit.disabled = true;
+  authSubmit.textContent = authMode === 'login' ? 'Logging in…' : 'Creating account…';
+
+  try {
+    const res = await fetch(`/api/auth/${authMode === 'login' ? 'login' : 'signup'}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password })
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.detail || 'Something went wrong. Please try again.');
+    authPassword.value = '';
+    setSignedIn(data.token, data.username);
+  } catch (err) {
+    authError.textContent = err.message || 'Something went wrong. Please try again.';
+    authError.classList.add('shown');
+  } finally {
+    authSubmit.disabled = false;
+    authSubmit.textContent = authMode === 'login' ? 'Log in' : 'Create account';
+  }
+});
+
+async function logout() {
+  try {
+    await fetch('/api/auth/logout', {
+      method: 'POST',
+      headers: authToken ? { 'Authorization': `Bearer ${authToken}` } : {}
+    });
+  } catch {
+    // ignore network errors on logout, we're clearing the local token anyway
+  }
+  authToken = null;
+  localStorage.removeItem('nexa_auth_token');
+  sessionStorage.removeItem('nexa_session_id');
+  sessionId = null;
+  lastGroup = null;
+  messagesEl.innerHTML = '';
+  messagesEl.appendChild(emptyState);
+  authPassword.value = '';
+  showAuthScreen();
+}
+
+logoutBtn.addEventListener('click', () => {
+  if (confirm('Log out of NEXA?')) logout();
+});
+
+function authHeaders() {
+  return authToken ? { 'Authorization': `Bearer ${authToken}` } : {};
+}
+
+async function initAuth() {
+  if (!authToken) {
+    showAuthScreen();
+    return;
+  }
+  try {
+    const res = await fetch('/api/auth/me', { headers: authHeaders() });
+    if (!res.ok) throw new Error('invalid session');
+    const data = await res.json();
+    userName = data.username;
+    localStorage.setItem('nexa_user_name', userName);
+    setSignedIn(authToken, userName);
+  } catch {
+    authToken = null;
+    localStorage.removeItem('nexa_auth_token');
+    showAuthScreen();
+  }
+}
 
 // ---- theme ----------------------------------------------------------
 const savedTheme = localStorage.getItem('nexa_theme')
@@ -861,7 +1132,8 @@ async function checkHealth() {
 async function loadHistory() {
   if (!sessionId) return;
   try {
-    const res = await fetch(`/api/history/${encodeURIComponent(sessionId)}`);
+    const res = await fetch(`/api/history/${encodeURIComponent(sessionId)}`, { headers: authHeaders() });
+    if (res.status === 401) return logout();
     if (!res.ok) return;
     const data = await res.json();
     const history = data.history || [];
@@ -894,13 +1166,14 @@ async function sendMessage(overrideText) {
   try {
     const res = await fetch('/api/chat', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...authHeaders() },
       body: JSON.stringify({ message: text, user_name: userName, session_id: sessionId })
     });
+    if (res.status === 401) { hideTyping(); sendBtn.disabled = false; return logout(); }
     if (!res.ok) throw new Error(`Server error (${res.status})`);
     const data = await res.json();
     sessionId = data.session_id;
-    localStorage.setItem('nexa_session_id', sessionId);
+    sessionStorage.setItem('nexa_session_id', sessionId);
     hideTyping();
     addMessage(data.reply, 'bot');
     setStatus('online');
@@ -922,7 +1195,7 @@ function uploadFile(file) {
     return;
   }
   if (!sessionId) {
-    sessionId = crypto.randomUUID();
+  sessionStorage.setItem('nexa_session_id', sessionId);
     localStorage.setItem('nexa_session_id', sessionId);
   }
   hideEmptyState();
@@ -937,6 +1210,7 @@ function uploadFile(file) {
 
   const xhr = new XMLHttpRequest();
   xhr.open('POST', `/api/upload?session_id=${encodeURIComponent(sessionId)}`);
+  if (authToken) xhr.setRequestHeader('Authorization', `Bearer ${authToken}`);
 
   xhr.upload.addEventListener('progress', (e) => {
     if (e.lengthComputable) {
@@ -948,6 +1222,7 @@ function uploadFile(file) {
     uploadProgress.classList.remove('active');
     let data = null;
     try { data = JSON.parse(xhr.responseText); } catch {}
+    if (xhr.status === 401) { logout(); return; }
     if (xhr.status >= 200 && xhr.status < 300 && data) {
       addSystemMessage(`${file.name} is indexed (${data.chunks_indexed} chunks). Ask away.`);
     } else {
@@ -1021,7 +1296,7 @@ messagesEl.addEventListener('scroll', () => {
 // Reset session
 resetBtn.addEventListener('click', () => {
   if (!confirm('Start a fresh conversation? Your current session id will be cleared.')) return;
-  localStorage.removeItem('nexa_session_id');
+  sessionStorage.removeItem('nexa_session_id');
   sessionId = null;
   lastGroup = null;
   messagesEl.innerHTML = '';
@@ -1029,8 +1304,8 @@ resetBtn.addEventListener('click', () => {
   addSystemMessage(`New session started for ${userName}.`);
 });
 
-checkHealth();
-loadHistory();
+setAuthMode('login');
+initAuth();
 inputEl.focus();
 </script>
 </body>
