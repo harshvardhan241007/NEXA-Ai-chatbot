@@ -177,3 +177,14 @@ git push -u origin main
   retriever — good for small/medium documents and demos. For large-scale
   production RAG, swap `app/rag.py`'s index for a real vector database
   (e.g. Chroma, pgvector, Pinecone).
+## Render deployment
+
+This project includes `render.yaml` and a Dockerfile configured for a Render Web Service.
+
+1. Push the project to GitHub/GitLab.
+2. In Render, create a **New → Web Service** and connect the repository.
+3. Choose **Docker** (the included `render.yaml` can also be used as a Blueprint).
+4. Set `LLM_PROVIDER` to `openai` if using OpenAI and add `OPENAI_API_KEY` as a Render secret.
+5. Deploy and verify `https://<your-service>.onrender.com/api/health`.
+
+The app listens on Render's `PORT` environment variable and uses `/api/health` for health checks. Render services use an ephemeral filesystem by default, so this SQLite database and uploaded documents will not survive restarts/redeploys unless you configure persistent storage or move the data to a managed datastore.

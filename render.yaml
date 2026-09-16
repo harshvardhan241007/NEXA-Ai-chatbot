@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: nexa-ai-chatbot
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /api/health
+    envVars:
+      - key: LLM_PROVIDER
+        value: none
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: OPENAI_MODEL
+        value: gpt-4o-mini

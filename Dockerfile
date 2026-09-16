@@ -15,8 +15,9 @@ COPY . .
 RUN mkdir -p data uploads
 
 ENV HOST=0.0.0.0
-ENV PORT=8000
+ENV PORT=10000
 
-EXPOSE 8000
+EXPOSE 10000
 
-CMD ["uvicorn", "app.api:app", "--host", "0.0.0.0", "--port", "8000"]
+# Render provides PORT at runtime; fall back to 10000 for local/container runs.
+CMD ["sh", "-c", "uvicorn app.api:app --host ${HOST:-0.0.0.0} --port ${PORT:-10000}"]
