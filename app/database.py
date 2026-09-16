@@ -2,7 +2,7 @@
 SQLite persistence layer.
 
 Tables:
-  users(id, username, password_hash, salt, created_at)
+  users(id, username, display_name, password_hash, salt, created_at)
   auth_tokens(token, user_id, created_at)
   conversations(id, session_id, user_id, user_name, created_at)
   messages(id, conversation_id, role, content, created_at)
@@ -32,9 +32,11 @@ def get_connection(db_path: str = None):
     path = db_path or settings.DB_PATH
     if path != ":memory:":
         _ensure_dir(path)
+
     conn = sqlite3.connect(path)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON;")
+
     try:
         yield conn
         conn.commit()
@@ -52,19 +54,21 @@ def _column_exists(conn, table: str, column: str) -> bool:
 
 def init_db(db_path: str = None) -> None:
     """Create tables if they do not already exist, and migrate older
-    databases (e.g. ones created before auth support existed) in place."""
+    databases in place."""
     with get_connection(db_path) as conn:
         conn.execute(
             """
             CREATE TABLE IF NOT EXISTS users (
                 id             INTEGER PRIMARY KEY AUTOINCREMENT,
                 username       TEXT UNIQUE NOT NULL,
+                display_name   TEXT,
                 password_hash  TEXT NOT NULL,
                 salt           TEXT NOT NULL,
                 created_at     TEXT DEFAULT (datetime('now'))
             );
             """
         )
+
         conn.execute(
             """
             CREATE TABLE IF NOT EXISTS auth_tokens (
@@ -75,6 +79,7 @@ def init_db(db_path: str = None) -> None:
             );
             """
         )
+
         conn.execute(
             """
             CREATE TABLE IF NOT EXISTS conversations (
@@ -87,6 +92,7 @@ def init_db(db_path: str = None) -> None:
             );
             """
         )
+
         conn.execute(
             """
             CREATE TABLE IF NOT EXISTS messages (
@@ -99,8 +105,32 @@ def init_db(db_path: str = None) -> None:
             );
             """
         )
-        # Migration: databases created before login/signup existed won't
-        # have this column yet.
+
+        # Migration: older databases may not have conversations.user_id.
         if not _column_exists(conn, "conversations", "user_id"):
-            conn.execute("ALTER TABLE conversations ADD COLUMN user_id INTEGER;")
+            conn.execute(
+                "ALTER TABLE conversations ADD COLUMN user_id INTEGER;"
+            )
+
+        # Migration: older databases may not have users.display_name.
+        if not _column_exists(conn, "users", "display_name"):
+            conn.execute(
+                "ALTER TABLE users ADD COLUMN display_name TEXT;"
+            )
+
+        # Backfill existing users so older accounts continue to work.
+        # Example:
+        # harsh@example.com -> harsh
+        conn.execute(
+            """
+            UPDATE users
+            SET display_name = CASE
+                WHEN instr(username, '@') > 0
+                    THEN substr(username, 1, instr(username, '@') - 1)
+                ELSE username
+            END
+            WHERE display_name IS NULL OR TRIM(display_name) = '';
+            """
+        )
+
     log.info("Database initialized at %s", db_path or settings.DB_PATH)

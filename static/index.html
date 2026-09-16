@@ -832,9 +832,13 @@
     <div class="auth-error" id="authError"></div>
 
     <form id="authForm">
+      <div class="auth-field" id="authNameField">
+        <label for="authName">Name</label>
+        <input id="authName" type="text" autocomplete="name" />
+      </div>
       <div class="auth-field">
-        <label for="authUsername">Username</label>
-        <input id="authUsername" type="text" autocomplete="username" minlength="3" required />
+        <label for="authUsername">Email</label>
+        <input id="authUsername" type="email" autocomplete="username" minlength="3" required />
       </div>
       <div class="auth-field">
         <label for="authPassword">Password</label>
@@ -957,10 +961,13 @@ const chipUpload = document.getElementById('chipUpload');
 let sessionId = sessionStorage.getItem('nexa_session_id') || null;
 let authToken = sessionStorage.getItem('nexa_auth_token') || null;
 let userName = sessionStorage.getItem('nexa_user_name') || 'Friend';
+let userEmail = sessionStorage.getItem('nexa_user_email') || '';
 
 // ---- auth screen ------------------------------------------------------
 const authCard = document.getElementById('authCard');
 const authForm = document.getElementById('authForm');
+const authName = document.getElementById('authName');
+const authNameField = document.getElementById('authNameField');
 const authUsername = document.getElementById('authUsername');
 const authPassword = document.getElementById('authPassword');
 const authSubmit = document.getElementById('authSubmit');
@@ -984,6 +991,11 @@ function setAuthMode(mode) {
   tabSignup.classList.toggle('active', mode === 'signup');
   authSubmit.textContent = mode === 'login' ? 'Log in' : 'Create account';
   authPassword.autocomplete = mode === 'login' ? 'current-password' : 'new-password';
+
+  // Name is required only during signup.
+  authNameField.style.display = mode === 'signup' ? 'block' : 'none';
+  authName.required = mode === 'signup';
+
   authHint.textContent = mode === 'login'
     ? 'New here? Switch to Sign up above to create an account.'
     : 'Already have an account? Switch to Log in above.';
@@ -1007,20 +1019,25 @@ function showApp() {
 }
 
 function updateProfileMenu() {
-  const account = (userName || '').trim();
-  const nickname = account.includes('@') ? account.split('@')[0] : account;
-  const initial = (nickname || 'U').charAt(0).toUpperCase() || 'U';
+  const name = (userName || '').trim();
+  const email = (userEmail || '').trim();
+  const initial = (name || 'U').charAt(0).toUpperCase() || 'U';
+
   profileBtn.textContent = initial;
   profileAvatar.textContent = initial;
-  profileNickname.textContent = nickname || '—';
-  profileEmail.textContent = account.includes('@') ? account : 'Email not set';
+  profileNickname.textContent = name || '—';
+  profileEmail.textContent = email || 'Email not set';
 }
 
-function setSignedIn(token, username) {
+function setSignedIn(token, name, email) {
   authToken = token;
-  userName = username;
-sessionStorage.setItem('nexa_auth_token', token);
-sessionStorage.setItem('nexa_user_name', username);
+  userName = name || 'Friend';
+  userEmail = email || '';
+
+  sessionStorage.setItem('nexa_auth_token', token);
+  sessionStorage.setItem('nexa_user_name', userName);
+  sessionStorage.setItem('nexa_user_email', userEmail);
+
   showApp();
   checkHealth();
   loadHistory();
@@ -1028,22 +1045,39 @@ sessionStorage.setItem('nexa_user_name', username);
 
 authForm.addEventListener('submit', async (e) => {
   e.preventDefault();
+
+  const name = authName.value.trim();
   const username = authUsername.value.trim();
   const password = authPassword.value;
+
   authError.classList.remove('shown');
   authSubmit.disabled = true;
   authSubmit.textContent = authMode === 'login' ? 'Logging in…' : 'Creating account…';
 
   try {
+    const body = authMode === 'login'
+      ? { username, password }
+      : { name, username, password };
+
     const res = await fetch(`/api/auth/${authMode === 'login' ? 'login' : 'signup'}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password })
+      body: JSON.stringify(body)
     });
+
     const data = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(data.detail || 'Something went wrong. Please try again.');
+    if (!res.ok) {
+      throw new Error(data.detail || 'Something went wrong. Please try again.');
+    }
+
     authPassword.value = '';
-    setSignedIn(data.token, data.username);
+    authName.value = '';
+
+    setSignedIn(
+      data.token,
+      data.name || data.username,
+      data.username
+    );
   } catch (err) {
     authError.textContent = err.message || 'Something went wrong. Please try again.';
     authError.classList.add('shown');
@@ -1063,7 +1097,9 @@ async function logout() {
     // ignore network errors on logout, we're clearing the local token anyway
   }
   authToken = null;
-sessionStorage.removeItem('nexa_auth_token');
+  sessionStorage.removeItem('nexa_auth_token');
+  sessionStorage.removeItem('nexa_user_name');
+  sessionStorage.removeItem('nexa_user_email');
   sessionStorage.removeItem('nexa_session_id');
   sessionId = null;
   lastGroup = null;
@@ -1107,12 +1143,16 @@ async function initAuth() {
     const res = await fetch('/api/auth/me', { headers: authHeaders() });
     if (!res.ok) throw new Error('invalid session');
     const data = await res.json();
-    userName = data.username;
-sessionStorage.setItem('nexa_user_name', userName);
-    setSignedIn(authToken, userName);
+    userName = data.name || data.username || 'Friend';
+    userEmail = data.username || '';
+    sessionStorage.setItem('nexa_user_name', userName);
+    sessionStorage.setItem('nexa_user_email', userEmail);
+    setSignedIn(authToken, userName, userEmail);
   } catch {
     authToken = null;
-sessionStorage.removeItem('nexa_auth_token');
+    sessionStorage.removeItem('nexa_auth_token');
+    sessionStorage.removeItem('nexa_user_name');
+    sessionStorage.removeItem('nexa_user_email');
     showAuthScreen();
   }
 }
