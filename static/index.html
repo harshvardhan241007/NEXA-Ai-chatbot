@@ -220,7 +220,92 @@
     50% { opacity: 0.35; }
   }
 
-  .header-actions { display: flex; gap: 6px; flex-shrink: 0; }
+  .header-actions { display: flex; gap: 6px; flex-shrink: 0; align-items: center; }
+
+  .profile-wrap { position: relative; }
+
+  .profile-btn {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    border: 1px solid var(--stroke);
+    background: var(--panel-raised);
+    color: var(--amber);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-display);
+    font-size: 13px;
+    font-weight: 700;
+    text-transform: uppercase;
+    transition: border-color 0.15s ease, transform 0.15s ease;
+  }
+  .profile-btn:hover { border-color: var(--amber); transform: translateY(-1px); }
+
+  .profile-menu {
+    position: absolute;
+    top: calc(100% + 10px);
+    right: 0;
+    width: 220px;
+    padding: 10px;
+    border: 1px solid var(--stroke);
+    border-radius: 14px;
+    background: var(--panel);
+    box-shadow: 0 18px 45px rgba(0,0,0,0.32);
+    z-index: 20;
+  }
+  .profile-menu[hidden] { display: none; }
+  .profile-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 7px 7px 10px;
+  }
+  .profile-avatar {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--amber), #c97a1e);
+    color: var(--amber-ink);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 12px;
+    flex-shrink: 0;
+  }
+  .profile-details { min-width: 0; }
+  .profile-nickname {
+    color: var(--text);
+    font-size: 12px;
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .profile-email {
+    min-width: 0;
+    color: var(--muted);
+    font-size: 11px;
+    margin-top: 2px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .profile-logout {
+    width: 100%;
+    border: 1px solid var(--stroke);
+    background: transparent;
+    color: var(--muted);
+    border-radius: 9px;
+    padding: 9px 10px;
+    cursor: pointer;
+    text-align: left;
+    font: inherit;
+    font-size: 12px;
+  }
+  .profile-logout:hover { border-color: var(--danger); color: var(--danger); }
 
   .icon-btn-ghost {
     background: transparent;
@@ -779,9 +864,19 @@
         <button class="icon-btn-ghost" id="resetBtn" title="Start a new session" aria-label="Start a new session">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg>
         </button>
-        <button class="icon-btn-ghost" id="logoutBtn" title="Log out" aria-label="Log out">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
-        </button>
+        <div class="profile-wrap" id="profileWrap">
+          <button class="profile-btn" id="profileBtn" type="button" title="Account" aria-label="Open account menu" aria-expanded="false">U</button>
+          <div class="profile-menu" id="profileMenu" hidden>
+            <div class="profile-info">
+              <div class="profile-avatar" id="profileAvatar">U</div>
+              <div class="profile-details">
+                <div class="profile-nickname" id="profileNickname">—</div>
+                <div class="profile-email" id="profileEmail">—</div>
+              </div>
+            </div>
+            <button class="profile-logout" id="logoutBtn" type="button">Log out</button>
+          </div>
+        </div>
       </div>
     </header>
 
@@ -874,6 +969,12 @@ const authHint = document.getElementById('authHint');
 const tabLogin = document.getElementById('tabLogin');
 const tabSignup = document.getElementById('tabSignup');
 const logoutBtn = document.getElementById('logoutBtn');
+const profileWrap = document.getElementById('profileWrap');
+const profileBtn = document.getElementById('profileBtn');
+const profileMenu = document.getElementById('profileMenu');
+const profileAvatar = document.getElementById('profileAvatar');
+const profileEmail = document.getElementById('profileEmail');
+const profileNickname = document.getElementById('profileNickname');
 
 let authMode = 'login'; // 'login' | 'signup'
 
@@ -902,6 +1003,17 @@ function showApp() {
   authCard.style.display = 'none';
   appEl.style.display = 'flex';
   nameHint.textContent = `Signed in as ${userName}`;
+  updateProfileMenu();
+}
+
+function updateProfileMenu() {
+  const account = (userName || '').trim();
+  const nickname = account.includes('@') ? account.split('@')[0] : account;
+  const initial = (nickname || 'U').charAt(0).toUpperCase() || 'U';
+  profileBtn.textContent = initial;
+  profileAvatar.textContent = initial;
+  profileNickname.textContent = nickname || '—';
+  profileEmail.textContent = account.includes('@') ? account : 'Email not set';
 }
 
 function setSignedIn(token, username) {
@@ -961,7 +1073,24 @@ sessionStorage.removeItem('nexa_auth_token');
   showAuthScreen();
 }
 
+profileBtn.addEventListener('click', (e) => {
+  e.stopPropagation();
+  const willOpen = profileMenu.hidden;
+  profileMenu.hidden = !willOpen;
+  profileBtn.setAttribute('aria-expanded', String(willOpen));
+});
+
+profileMenu.addEventListener('click', (e) => e.stopPropagation());
+document.addEventListener('click', () => {
+  if (!profileMenu.hidden) {
+    profileMenu.hidden = true;
+    profileBtn.setAttribute('aria-expanded', 'false');
+  }
+});
+
 logoutBtn.addEventListener('click', () => {
+  profileMenu.hidden = true;
+  profileBtn.setAttribute('aria-expanded', 'false');
   if (confirm('Log out of NEXA?')) logout();
 });
 
